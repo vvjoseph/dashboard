@@ -179,10 +179,12 @@ df_pest2 = pd.read_csv(
 df_pest3 = pd.read_csv(
     'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/pest_dash_spatial_final.csv')
 
-dropped_pest = df_pest1.drop(['week'], axis=1)
+dropped_pest = df_pest1.drop(['month_week','crop'], axis=1)
 metrics_pest =  list(dropped_pest.columns.values)
+#crops =  ['paddy', 'tomato', 'brinjal']
+crops = df_pest1['crop'].unique()
 districts_pest = df_pest2['district'].unique()
-weeks_pest = df_pest1['week'].unique()
+weeks_pest = df_pest1['month_week'].unique()
 
 pest_layout = html.Div(children=[
 ##    html.H1(
@@ -198,11 +200,15 @@ pest_layout = html.Div(children=[
         html.Div([
             html.Div([
                 dcc.Dropdown(
+                    id='crop',
+                    options=[{'label': i, 'value': i} for i in crops],
+                    value='paddy'
+                ),
+                dcc.Dropdown(
                     id='metric-pest',
                     options=[{'label': i, 'value': i} for i in metrics_pest],
                     value='blb'
                 ),
-
                 dcc.Graph(id='graph-1-pest'),
                 dcc.Dropdown(
                     id='district-pest',
@@ -220,7 +226,7 @@ pest_layout = html.Div(children=[
                 dcc.Dropdown(
                     id='week-metric-pest',
                     options=[{'label': i, 'value': i} for i in weeks_pest],
-                    value='Week 2'
+                    value='Oct-Week 4'
                 ),
                 dcc.Graph(id='graph-4-pest'),
                 dcc.Graph(id='graph-3-pest'),
@@ -234,14 +240,16 @@ pest_layout = html.Div(children=[
 
 @app.callback(
     dash.dependencies.Output('graph-1-pest', 'figure'),
-    [dash.dependencies.Input('metric-pest', 'value')])
+    [dash.dependencies.Input('metric-pest', 'value'),
+     dash.dependencies.Input('crop', 'value')])
 
-def update_graph_1(metric):
-    
+def update_graph_1(metric,crop):
+    filtered = df_pest1[df_pest1['crop'] == crop]
+    filtered = filtered[(filtered[[metric]] != 0).all(axis=1)]   
     return {
         'data': [go.Scatter(
-            x=df_pest1['week'],
-            y=df_pest1[metric],
+            x=filtered['month_week'],
+            y=filtered[metric],
         )],
         'layout': go.Layout(
             height=250,
@@ -260,15 +268,19 @@ def update_graph_1(metric):
 @app.callback(
     dash.dependencies.Output('graph-2-pest', 'figure'),
     [dash.dependencies.Input('metric-pest', 'value'),
+     dash.dependencies.Input('crop', 'value'),
      dash.dependencies.Input('district-pest', 'value')])
 
-def update_graph_2(metric,district):
+def update_graph_2(metric,crop,district):
 
     filtered_dist = df_pest2[df_pest2['district'] == district]
-    
+    filtered_dist = filtered_dist[filtered_dist['crop'] == crop]
+    filtered_dist = filtered_dist[(filtered_dist[[metric]] != 0).all(axis=1)]   
+
+ 
     return {
         'data': [go.Scatter(
-            x=filtered_dist['week'],
+            x=filtered_dist['month_week'],
             y=filtered_dist[metric],
         )],
         'layout': go.Layout(
@@ -288,13 +300,15 @@ def update_graph_2(metric,district):
 @app.callback(
     dash.dependencies.Output('graph-3-pest', 'figure'),
     [dash.dependencies.Input('metric-pest', 'value'),
+     dash.dependencies.Input('crop', 'value'),
      dash.dependencies.Input('district-pest', 'value'),
      dash.dependencies.Input('week-metric-pest', 'value')])
 
-def update_graph_3(metric,district,week):
+def update_graph_3(metric,crop,district,week):
 
     filtered_dist_block = df_pest3[df_pest3['district'] == district]
-    filtered_dist_block = filtered_dist_block[filtered_dist_block['week'] == week]
+    filtered_dist_block = filtered_dist_block[filtered_dist_block['crop'] == crop]
+    filtered_dist_block = filtered_dist_block[filtered_dist_block['month_week'] == week]
     filtered_dist_block = filtered_dist_block[(filtered_dist_block[[metric]] != 0).all(axis=1)]
     filtered_dist_block = filtered_dist_block.sort_values([metric], ascending=0)    
     
@@ -321,11 +335,13 @@ def update_graph_3(metric,district,week):
 @app.callback(
     dash.dependencies.Output('graph-4-pest', 'figure'),
     [dash.dependencies.Input('metric-pest', 'value'),
+     dash.dependencies.Input('crop', 'value'),
      dash.dependencies.Input('week-metric-pest', 'value')])
 
-def update_graph_4(metric,week):
+def update_graph_4(metric,crop,week):
 
-    filtered_block = df_pest3[df_pest3['week'] == week]
+    filtered_block = df_pest3[df_pest3['month_week'] == week]
+    filtered_block = filtered_block[filtered_block['crop'] == crop]
     filtered_block = filtered_block[(filtered_block[[metric]] != 0).all(axis=1)]
     filtered_block = filtered_block.sort_values([metric], ascending=0)    
     
@@ -364,9 +380,30 @@ df_in3 = pd.read_csv(
     'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/inbound_dash_spatial_final.csv')
 
 dropped = df_in1.drop(['month','month_week'], axis=1)
-metrics =  list(dropped.columns.values)
+metrics = list(dropped.columns.values)
 districts = df_in2['district'].unique()
 weeks = df_in2['month_week'].unique()
+
+
+##sections = df_in1.drop(['month','month_week','Total_inbound_calls','Total_unique_callers','Average_duration'], axis=1)
+##hits = list(sections.columns.values)
+##
+####traces = []
+####for col in hits:
+####    traces.append(go.Scatter(
+####        x=df_in1['month_week'],
+####        y=df_in1[col],
+##        mode='lines+markers',
+##        #text=df_by_continent['country'],
+##        #mode='markers',
+##        #opacity=0.7,
+##        #marker={
+##         #   'size': 15,
+##        #    'line': {'width': 0.5, 'color': 'white'}
+##        #},
+##        name=col
+##    ))
+##
 
 inbound_layout = html.Div(children=[
 ##    html.H1(
@@ -384,10 +421,26 @@ inbound_layout = html.Div(children=[
                 dcc.Dropdown(
                     id='metric',
                     options=[{'label': i, 'value': i} for i in metrics],
-                    value='Total_inbound_calls'
+                    value='Total_inbound_calls',
                 ),
 
                 dcc.Graph(id='graph-1'),
+##                dcc.Graph(
+##                    id='test',
+##                    figure={
+##                        'data': traces,
+##                        'layout': go.Layout(
+##                            height=500,
+####                            title='Pest incidence by blocks',
+####                            barmode='group',
+####                            xaxis={'title': 'Blocks'},
+####                            yaxis={'title': 'No. of questions'},
+##                            margin={'l': 40, 't': 10, 'r': 0},
+##                            hovermode='closest'
+##                        )
+##                    }
+##                ),
+
             ]),
 
         ], className="six columns"),
@@ -495,7 +548,8 @@ def update_graph_1(metric):
         'data': [go.Scatter(
             x=filtered['month_week'],
             y=filtered[metric],
-        )],
+            mode='lines+markers',
+            )],
         'layout': go.Layout(
             height=500,
 ##            xaxis={
@@ -592,6 +646,7 @@ metrics_out =  list(dropped_out.columns.values)
 districts_out = df_out2['district'].unique()
 weeks_out = df_out2['month_week'].unique()
 
+
 outbound_layout = html.Div(children=[
 ##    html.H1(
 ##        children='dashPAD',
@@ -612,6 +667,7 @@ outbound_layout = html.Div(children=[
                 ),
 
                 dcc.Graph(id='graph-1-out'),
+
             ]),
 
     ], className="six columns"),
@@ -874,8 +930,16 @@ def update_graph_3(metric,district,week):
 
 ########            farmer profiles      ######
 ##
-##profiles = pd.read_csv(
-##    'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/profiles_dash_final.csv')
+##gender = pd.read_csv(
+##    'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/profiles_dash/gender.csv')
+##phone = pd.read_csv(
+##    'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/profiles_dash/phone.csv')
+##irrigation = pd.read_csv(
+##    'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/profiles_dash/irrigation.csv')
+##land = pd.read_csv(
+##    'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/profiles_dash/land.csv')
+##sowing = pd.read_csv(
+##    'X:/Dropbox (Precision Agr)/Implementation_India/Field_India/Field_Odisha/01operations/06. usage_analysis/out/profiles_dash/sowing.csv')
 ##
 ##
 ##profiles_layout = html.Div(style={children=[
@@ -898,7 +962,7 @@ def update_graph_3(metric,district,week):
 ##                          values=profiles['gender'],
 ##                          hoverinfo='label+percent',
 ##                          textfont=dict(size=20),
-##                          marker=dict(colors=colors,
+##                          marker=dict(colors=colors),
 ##                          line=dict(color='#000000', width=2),
 ##                        ) 
 ##                    
@@ -1017,8 +1081,8 @@ def update_graph_3(metric,district,week):
 ##    dcc.Link('Index', href='/'),
 ##    
 ##])
-
-
+##
+##
 
 #training
 
@@ -1079,4 +1143,4 @@ def display_page(pathname):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0')
